@@ -1,6 +1,8 @@
-# Towboat - managing Docker with configuration files.
+# Towboat
 
-A bash script that starts/manages Docker containers based on a set of config files in a configuration directory. By default this is `/etc/towboat`, and all files matching "*.cfg" are processed.
+Manages [Docker](http://www.docker.io) with configuration files.
+
+A bash script that starts/manages Docker containers based on a set of config files matching `*.cfg` in, by default  `/etc/towboat`.
 
 
 ## Features
@@ -12,7 +14,7 @@ A bash script that starts/manages Docker containers based on a set of config fil
   - Containers a container links with are started before the container itself is stated.
   - Rudimentary circular dependency checking (not perfect/super well tested, but works for simple situations)
 - Detect configuration changes compared to the previous `towboat` run, and remove and restart the container with the new configuration if AUTO_REMOVE is enabled.
-- Rudimentary [`pipework`](support https://github.com/jpetazzo/pipework/)
+- Rudimentary [pipework](support https://github.com/jpetazzo/pipework/)
 - Use ipv4 addresses from specific interfaces in port mappings. IP changes are detected as a configuration change.
 
 
