@@ -303,7 +303,7 @@ function check_dependencies()
 	for DEP in $DEP_LINKS; do
 		if [ -z "$(find_container $DEP)" ]; then
 			log "$ORIG_CONTAINER: starting dependency $DEP"
-			run_dependency "$ORIG_CONTAINER" "$DEP" || {
+			run_dependency "$ORIG_CONTAINER" "$(echo $DEP|sed -e "s/^\(.*\):.*/\1/")" || {
 				resetenv
 				return 1
 			}
@@ -371,7 +371,7 @@ function full_start()
 	if [ -n "$LINKS" ]; then
 		local L
 		for L in "${LINKS[@]}"; do
-			_DOPTS="$_DOPTS --link $L"
+			_DOPTS="$_DOPTS -link $L"
 		done
 	fi
 	

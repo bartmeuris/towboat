@@ -77,8 +77,8 @@ PORTS=(
 # Link the container with the following containers.
 # See Docker documentation for more information about this.
 LINKS=(
-	"container1"
-	"container2"
+	"container1:alias"
+	"container2:alias"
 )
 
 #######################################################################
