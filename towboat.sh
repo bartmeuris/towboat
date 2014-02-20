@@ -1,4 +1,5 @@
 #!/bin/bash
+set -m
 
 #LOGLEVEL=1 # ABORT/FATAL/OK
 #LOGLEVEL=2 # ERROR
