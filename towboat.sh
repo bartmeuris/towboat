@@ -94,6 +94,7 @@ function printenv()
 	log "PW_MAC=$PW_MAC"
 	log "CONTAINER_ENV=${CONTAINER_ENV[@]}"
 	log "DOCKER_HOST=$DOCKER_HOST"
+	log "DATA_CONTAINER=$DATA_CONTAINER"
 	log "MD5=$MD5"
 }
 
@@ -120,6 +121,7 @@ function resetenv()
 	PW_MAC=
 	CONTAINER_ENV=
 	DOCKER_HOST=
+	DATA_CONTAINER=
 
 	# Internal stuff
 	RUN_ID=
