@@ -11,8 +11,6 @@ PIPEWORK=${PIPEWORK:-"/usr/bin/pipework"}
 DOCKER=${DOCKER:-$(which docker 2>/dev/null)}
 DOCKER=${DOCKER:-"/usr/bin/docker"}
 
-[ ! -x "$DOCKER" ] && abort "Could not locate Docker executable!"
-
 function _log() {
 	if [ -z "$1" ]; then
 		TYPE="LOG"
@@ -551,6 +549,10 @@ function stop_towboat()
 	return 1
 }
 
+##################################################
+## Startup
+
+[ ! -x "$DOCKER" ] && abort "Could not locate Docker executable!"
 case $1 in
 	start)
 		shift 1
