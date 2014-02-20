@@ -17,6 +17,17 @@ A bash script that starts/manages Docker containers based on a set of config fil
 - Rudimentary [pipework](support https://github.com/jpetazzo/pipework/)
 - Use ipv4 addresses from specific interfaces in port mappings. IP changes are detected as a configuration change.
 
+## Running towboat
+
+Executing towboat is as simple as running:
+```
+towboat start
+```
+
+If you want to test only a specific docker image (check if it can resolve it's dependencies for example), you do that like this:
+```
+towboat start container-to-test
+```
 
 ## Overriding file/path locations
 
