@@ -153,9 +153,9 @@ function loadconfig()
 			if [ "$(echo $P|grep "^@.*:")" ]; then
 				local PIF=$(echo $P | sed -e "s#^@\([^:]*\):.*#\1#")
 				local PIP=$(ip addr show $PIF | grep "inet " | awk '{ print $2 }' | sed -e "s#^\(.*\)/.*#\1#")
-				#log "Interface detected in port mapping: $P: $PIF: $PIP"
 				TMPA=( "$(echo $P|sed -e "s/^@${PIF}:/${PIP}:/")" )
 				IFIPS="${IFIPS} ${PIF}=${TMPA[0]}"
+				#log "Interface detected in port mapping: $P: $PIF: $PIP -> $TMPA"
 			else
 				#log "Static mapping: $P"
 				TMPA=( "$P" )

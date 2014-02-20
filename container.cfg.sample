@@ -31,7 +31,7 @@ CONTAINER_PARAM=
 
 # Additional container environment variables.
 CONTAINER_ENV=(
-	"TEST=1234", 
+	"TEST=1234"
 	"TEST2='123 456'"
 )
 
@@ -67,17 +67,17 @@ PORTS_ALL=true
 # Configuration update, so the container is deleted and re-created
 # when AUTO_REMOVE is on and an IP change is detected.
 PORTS=(
-	"hostip:hostPort:containerPort",
-	"hostip::containerPort",
-	"@ifname:hostPort:containerPort",
-	"@ifname::containerPort",
+	"hostip:hostPort:containerPort"
+	"hostip::containerPort"
+	"@ifname:hostPort:containerPort"
+	"@ifname::containerPort"
 	"hostPort:containerPort"
 )
 
 # Link the container with the following containers.
 # See Docker documentation for more information about this.
 LINKS=(
-	"container1", 
+	"container1"
 	"container2"
 )
 
@@ -89,7 +89,7 @@ LINKS=(
 # Since Docker 0.7, it can also map single files (just specify their
 # full path)
 VOLUMES=(
-	"/host/path1:/containerpath1",
+	"/host/path1:/containerpath1"
 	"/host/path2:/containerpath2"
 )
 
@@ -105,7 +105,7 @@ VOLUMES=(
 #    AUTO_REMOVE setting is set to "false". This practice however is
 #    not recommended.
 VOLUMES_FROM=(
-	"container-data",
+	"container-data"
 	"container2-data"
 )
 
