@@ -1,0 +1,122 @@
+#######################################################################
+#### Towboat full example container config file
+#######################################################################
+##
+## This file shows all options available for managing a docker
+## container with towboat.
+##
+
+# If set to false, this container will not be processed
+#ENABLED=false
+
+#######################################################################
+
+# Name of the container, has to match the filename
+NAME=container-name
+
+# Name of the image to use for starting/running this container.
+# Docker will automatically pull this if it doesn't exist locally
+IMAGE=ubuntu:12.04
+
+# If set to true, kills, removes and re-creates the container when
+# a config change is detected.
+AUTO_REMOVE=true
+
+# Specify hostname, if empty, this is set to the container name
+# defined above
+#CONTAINER_HOSTNAME=
+
+# Parameters to pass to the container when running it.
+CONTAINER_PARAM=
+
+# Additional container environment variables.
+CONTAINER_ENV=(
+	"TEST=1234", 
+	"TEST2='123 456'"
+)
+
+# Indicate if the container is used for data-storage, which means
+# they do not have to run. Auto removing is disabled.
+DATA_CONTAINER=false
+
+#######################################################################
+#### Docker options
+
+# Specify the docker host to connect to.
+# Allows you to control remote Docker hosts. See Docker
+# documentation for more information
+#DOCKER_HOST=
+
+# Extra docker options to pass on the commandline when using the run command
+# Not used in other cases
+#DOCKER_PARAM=
+
+
+#######################################################################
+#### Networking
+#######################################################################
+# Enable Docker networking
+NETWORK_DISABLED=false
+
+# Publishes all ports
+PORTS_ALL=true
+
+# Specific port mappings, uses docker syntax, with one addition
+# It supports the "@ifname" syntax, which picks up the IP of the
+# ethernet device specified. An IP change is considered to be a
+# Configuration update, so the container is deleted and re-created
+# when AUTO_REMOVE is on and an IP change is detected.
+PORTS=(
+	"hostip:hostPort:containerPort",
+	"hostip::containerPort",
+	"@ifname:hostPort:containerPort",
+	"@ifname::containerPort",
+	"hostPort:containerPort"
+)
+
+# Link the container with the following containers.
+# See Docker documentation for more information about this.
+LINKS=(
+	"container1", 
+	"container2"
+)
+
+#######################################################################
+#### Volume mappings
+#######################################################################
+# Host/container volume mappings
+# Maps a path on the docker host to a path in the container.
+# Since Docker 0.7, it can also map single files (just specify their
+# full path)
+VOLUMES=(
+	"/host/path1:/containerpath1",
+	"/host/path2:/containerpath2"
+)
+
+# Container->Container volume mappings. Use volumes from the following
+# containers.
+# NOTES:
+#  - data containers do not have to be running to be used by another
+#    container
+#  - When specifying a data-only container in towboat, make sure
+#    DATA_CONTAINER is set to "true".
+#  - When using volume mappings from a multi-purpose container, make
+#    sure it's
+#    AUTO_REMOVE setting is set to "false". This practice however is
+#    not recommended.
+VOLUMES_FROM=(
+	"container-data",
+	"container2-data"
+)
+
+#######################################################################
+#### Pipework ( https://github.com/jpetazzo/pipework/ )
+#######################################################################
+## TODO: Document
+PW_ENABLED=false
+PW_HOSTIF=eth1
+PW_CONTAINER_IF=eth1
+PW_IP=dhcp
+#PW_IP=192.168.0.2/24
+#PW_GATEWAY=192.168.0.1
+#PW_MAC=fa:00:00:00:00:00
