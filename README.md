@@ -35,9 +35,11 @@ You can override paths of a few things by setting environment variables
 
 An attempt is made to locate the `pipework` and `docker` executables in the path. When this fails, a fallback location is attempted.
 
- - `TOWBOAT_CONFIGPATH`: Override where `towboat` searches for the config files. The default is `/etc/towboat`.
- - `PIPEWORK`: the location of the `pipework` script. Only required when you have configurations where `PW_ENABLED` is set to true. Fallback: `/usr/bin/pipework`.
- - `DOCKER`: the location of the `docker` executable. Fallback: `/usr/bin/docker`.
+| Environment variable | Description | Default/Fallback |
+|---------------|---------------|---------------|
+| `TOWBOAT_CONFIGPATH` | Override where `towboat` searches for the config files. | The default is `/etc/towboat` |
+| `PIPEWORK` | The location of the `pipework` script. Only required when you have configurations where `PW_ENABLED` is set to true. | Fallback: `/usr/bin/pipework` |
+| `DOCKER` | The location of the `docker` executable. | Fallback: `/usr/bin/docker` |
 
 ## Config file format.
 
