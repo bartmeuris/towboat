@@ -678,7 +678,7 @@ case $CMD in
 		towboat_status $* || exit 1
 		;;
 	*)
-		echo "Usage: $0 start|stop|restart|status"
+		echo "Usage: $0 start|stop|restart|status [containernames...]"
 		exit 1
 esac
 exit 0
