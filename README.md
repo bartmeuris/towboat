@@ -11,11 +11,11 @@ A bash script that starts/manages Docker containers based on a set of config fil
 - Data-containers support. These do not have to be running.
 - Dependency checking:
   - Required data-volume containers are auto-created if they don't exist.
-  - Containers a container links with are started before the container itself is stated.
+  - The linked containers are started before the container itself is started.
   - Rudimentary circular dependency checking (not perfect/super well tested, but works for simple situations)
 - Detect configuration changes compared to the previous `towboat` run, and remove and restart the container with the new configuration if AUTO_REMOVE is enabled.
 - Rudimentary [pipework](https://github.com/jpetazzo/pipework/) support
-- Use ipv4 addresses from specific interfaces in port mappings. IP changes are detected as a configuration change.
+- Use ipv4 addresses from specific interfaces in port mappings. IP changes are detected as a configuration change. Use the "@<interfacename>" in the PORTS setting instead of the host IP address.
 
 ## Running towboat
 
