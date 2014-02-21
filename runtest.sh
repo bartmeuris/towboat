@@ -1,3 +1,3 @@
 #!/bin/bash
 export TOWBOAT_CONFIGPATH="$(dirname $0)/tests/"
-./towboat.sh start $*
+$(dirname $0)/towboat start $*
