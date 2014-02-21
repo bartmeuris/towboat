@@ -1,16 +1,31 @@
 #!/bin/bash
+#######################################################################
+## Towboat: Managing docker containers with simple configuration files
+#######################################################################
+## Author     : Bart Meuris <bart.meuris@gmail.com>
+## Version    : 0.1 Alpha
+##
+#######################################################################
+## Todo:
+## - Add more commandline options
+## - Add environment configuration and load /etc/default/towboat if it
+##   exists.
+## - Testing
+## - More testing
+#######################################################################
 set -m
 
 #LOGLEVEL=1 # ABORT/FATAL/OK
 #LOGLEVEL=2 # ERROR
 #LOGLEVEL=3 # WARN
-LOGLEVEL=4 # LOG
+#LOGLEVEL=4 # LOG
 
 CONFIGPATH=${TOWBOAT_CONFIGPATH:-"/etc/towboat/"}
 PIPEWORK=${PIPEWORK:-$(which pipework 2>/dev/null)}
 PIPEWORK=${PIPEWORK:-"/usr/bin/pipework"}
 DOCKER=${DOCKER:-$(which docker 2>/dev/null)}
 DOCKER=${DOCKER:-"/usr/bin/docker"}
+LOGLEVEL=${LOGLEVEL:-4}
 
 function _log() {
 	if [ -z "$1" ]; then
@@ -52,17 +67,22 @@ function abort() {
 
 function checkval
 {
-	[ -z "$1" ] && { echo ${2:-false} ; return; }
-	[ "$1" == "false" ] || [ "$1" == "False" ] || [ "$1" == "FALSE" ] || [ "$1" == "0" ] && {
+	VAL=$1
+	[ -z "$VAL" ] && VAL="${2:-false}"
+	case "$(echo $VAL|tr A-Z a-z)" in
+	"false"|"f"|"n"|"0")
 		echo "false"
-		return
-	}
-	[ "$1" == "true" ] || [ "$1" == "True" ] || [ "$1" == "True" ] && [ "$1" != "0" ] && {
+		return 1
+		;;
+	"true"|"t"|"y"|"1")
 		echo "true"
-		return
-	}
-	echo ${2:-false}
-	return
+		return 0;
+		;;
+	*)
+		echo $VAL
+		;;
+	esac
+	return 0
 }
 
 ###################################
@@ -178,6 +198,7 @@ function loadconfig()
 	else
 		MD5=$( cat ${CFILE} | md5sum | awk '{ print $1 }')
 	fi
+	return 0
 }
 
 
@@ -209,6 +230,7 @@ function run_pipework()
 
 	log "Running pipework: $PIPEWORK $PW_HOSTIF $PW_OPT $RUN_ID $PW_IP $PW_MAC"
 	eval "$PIPEWORK $PW_HOSTIF $PW_OPT $RUN_ID $PW_IP $PW_MAC" || return 1
+	return 0
 }
 
 function find_container() {
@@ -224,6 +246,7 @@ function find_container() {
 		return 1
 	fi
 	echo $ID
+	return 0
 }
 
 ## Find an environment variable stored in the container metadata
@@ -238,6 +261,7 @@ function findenv()
 		[ -z "$(echo $D_ENV| grep "^$1=")" ] && continue
 		echo $D_ENV|sed -e "s/^$1=\(.*\)$/\1/"
 	done
+	return 0
 }
 
 function check_dependency
@@ -247,6 +271,7 @@ function check_dependency
 		error "    Dependencies: ${DEPS_CHECKS}"
 		return 1
 	fi
+	return 0
 }
 
 function add_dep_tree()
@@ -283,6 +308,7 @@ function run_dependency()
 		return 1
 	}
 	rm_dep_tree "$DEP"
+	return 0
 }
 
 ## Check dependencies for the current container
@@ -329,6 +355,7 @@ function check_dependencies()
 		resetenv
 		return 1
 	}
+	return 0
 }
 
 #
@@ -422,7 +449,7 @@ function restart()
 		else
 			log "$NAME is an existing data-container, no need to start."
 		fi
-		return
+		return 0
 	fi
 
 	if [ -z "$MD5R" ]; then
@@ -464,8 +491,49 @@ function restart()
 	return 0
 }
 
+function containerstatus() {
+	loadconfig $1 || return 1
+	if [ "$(checkval "$ENABLED" true)" == "false"  ]; then
+		if [ -n "$(find_container)" ]; then
+			warn "$NAME: Disabled, but running"
+		else
+			ok "$NAME: Disabled"
+		fi
+		return 0
+	elif [ -n "$(find_container)" ]; then
+		ok "$NAME: Running"
+	elif [ -n "$(find_container -a)" ]; then
+		if [ "$(checkval "$DATA_CONTAINER" false)" == "true" ]; then
+			ok "$NAME: Data container exists"
+		else
+			error "$NAME: Container exists but not running"
+			return 1
+		fi
+	else
+		error "$NAME: Container does not exist!"
+		return 1
+	fi
+	return 0
+}
+
+function stopcontainer() {
+	loadconfig $1 || return 1
+	if [ -z "$(find_container)" ]; then
+		ok "$NAME: already stopped"
+	elif [ -z "$(find_container -a)" ]; then
+		warn "$NAME: container does not exist"
+	else
+		$DOCKER $DOCKER_HOST kill $NAME >/dev/null || {
+			error "$NAME: error while stopping the container!"
+			return 1
+		}
+		ok "$NAME: stopped."
+	fi
+	return 0
+}
+
 function startcontainer() {
-	[ -n "$(echo $CONTAINERS_STARTED | grep "|$1|")" ] && return
+	[ -n "$(echo $CONTAINERS_STARTED | grep "|$1|")" ] && return 0
 	[ -n "$(echo $CONTAINERS_FAILED | grep "|$1|")" ] && {
 		warn "'$1' already failed before, not attempting to start it again."
 		return 1
@@ -474,7 +542,7 @@ function startcontainer() {
 	#log "Starting container from file: $1"
 	loadconfig $1 || return 1
 	if [ "$(checkval "$ENABLED" true)" == "false"  ]; then
-		return
+		return 0
 	fi
 	
 	if [ -n "$(find_container)" ]; then
@@ -495,11 +563,11 @@ function startcontainer() {
 			else
 				warn "$NAME running, but config changed, AUTO_REMOVE disabled!"
 				ok "$NAME running"
-				return
+				return 0
 			fi
 		else
 			ok "$NAME already running"
-			return
+			return 0
 		fi
 	elif [ -n "$(find_container -a)" ]; then
 		# Exists but not running
@@ -532,65 +600,85 @@ function startcontainer() {
 	CONTAINERS_STARTED="${CONTAINERS_STARTED}|$1|"
 }
 
-function start_towboat()
+function towboat_run()
 {
+	# Commandline parameters passed, these should be specific containers to start
+	RUNACTION=$1
+	FNC=$2
+	shift 2
+	[ -z "$FNC" ] && return 2
+
+	if [ -n "$1" ]; then
+		FAIL=
+		while [ -n "$1" ]; do
+			CFGF=$(getconfigfiles | grep "/${1}.cfg\$" | tail -n1)
+			[ -z "$CFGF" ] && {
+				error "## Container '$1' config file not found in '$CONFIGPATH'!"
+				FAIL="$FAIL $1"
+				shift 1
+				continue
+			}
+			$FNC $CFGF
+			shift 1
+		done
+		[ -n "$FAIL" ] && {
+			error "Failed $RUNACTION: $FAIL"
+			return 1
+		}
+		return 0
+	fi
+	
 	## Process all config files
 	CONTAINERS_STARTED=
 	CONTAINERS_FAILED=
 	for F in $(getconfigfiles); do
 		DEPS_CHECKS=
-		startcontainer $F
+		$FNC $F
 	done
 	#echo CONTAINERS_STARTED: $CONTAINERS_STARTED
 	#echo CONTAINERS_FAILED: $CONTAINERS_FAILED
 	[ -n "$CONTAINERS_FAILED" ] && return 1
+	return 0
+}
+function towboat_start()
+{
+	towboat_run "starting" "startcontainer" $*
+	return $?
 }
 
-function stop_towboat()
+function towboat_status()
 {
-	echo "TODO: Stop"
-	return 1
+	towboat_run "checking the status of" "containerstatus" $*
+	return $?
+}
+function towboat_stop()
+{
+	towboat_run "stopping" "stopcontainer" $*
+	return $?
 }
 
 ##################################################
 ## Startup
 
 [ ! -x "$DOCKER" ] && abort "Could not locate Docker executable!"
-case $1 in
+CMD=$1
+shift 1
+case $CMD in
 	start)
-		shift 1
-		if [ -n "$1" ]; then
-			FAIL=
-			while [ -n "$1" ]; do
-				CFGF=$(getconfigfiles | grep "/${1}.cfg\$" | tail -n1)
-				[ -z "$CFGF" ] && {
-					error "Container '$1' config file not found in '$CONFIGPATH'!"
-					FAIL="$FAIL $1"
-					shift 1
-					continue
-				}
-				startcontainer $CFGF
-				shift 1
-			done
-			[ -n "$FAIL" ] && {
-				error "Failed to start: $FAIL"
-				exit 1
-			}
-		else
-			start_towboat || exit 1
-		fi
-		exit 0
+		towboat_start $* || exit 1
 		;;
 	stop)
-		stop_towboat || exit 1
-		exit 0
+		towboat_stop $* || exit 1
 		;;
 	restart)
-		stop_towboat || exit 1
-		start_towboat || exit 1
-		exit 0
-	;;
+		towboat_stop $* || exit 1
+		towboat_start $* || exit 1
+		;;
+	status)
+		towboat_status $* || exit 1
+		;;
 	*)
-		echo "Usage: $0 start|stop|restart"
+		echo "Usage: $0 start|stop|restart|status"
 		exit 1
 esac
+exit 0
