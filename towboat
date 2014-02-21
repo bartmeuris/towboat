@@ -95,6 +95,7 @@ function getconfigfiles()
 function printenv()
 {
 	log "NAME=$NAME"
+	log "ENABLED=$ENABLED"
 	log "CONTAINER_HOSTNAME=$CONTAINER_HOSTNAME"
 	log "IMAGE=$IMAGE"
 	log "CONTAINER_PARAM=$CONTAINER_PARAM"
@@ -122,6 +123,7 @@ function resetenv()
 {
 	# Settings from config file
 	NAME=
+	ENABLED=
 	CONTAINER_HOSTNAME=
 	IMAGE=
 	CONTAINER_PARAM=
@@ -542,6 +544,7 @@ function startcontainer() {
 	#log "Starting container from file: $1"
 	loadconfig $1 || return 1
 	if [ "$(checkval "$ENABLED" true)" == "false"  ]; then
+		warn "$NAME: disabled"
 		return 0
 	fi
 	
