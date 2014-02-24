@@ -92,80 +92,78 @@ function getconfigfiles()
 	find $CONFIGPATH -maxdepth 1 -name "*.cfg" | sort
 }
 
+TOWBOAT_CONFIGS=(
+	"NAME"
+	"ENABLED"
+	"CONTAINER_HOSTNAME"
+	"IMAGE"
+	"CONTAINER_PARAM"
+	"DOCKER_PARAM"
+	"NETWORK_DISABLED"
+	"PORTS_ALL"
+	"PORTS"
+	"VOLUMES"
+	"VOLUMES_FROM"
+	"LINKS"
+	"AUTO_REMOVE"
+	"PW_ENABLED"
+	"PW_HOSTIF"
+	"PW_CONTAINER_IF"
+	"PW_IP"
+	"PW_GATEWAY"
+	"PW_MAC"
+	"CONTAINER_ENV"
+	"DOCKER_HOST"
+	"DATA_CONTAINER"
+)
+
+TOWBOAT_ENV=(
+	"CONFIG_FILE"
+	"RUN_ID"
+	"MD5"
+)
+
 function printenv()
 {
-	log "NAME=$NAME"
-	log "ENABLED=$ENABLED"
-	log "CONTAINER_HOSTNAME=$CONTAINER_HOSTNAME"
-	log "IMAGE=$IMAGE"
-	log "CONTAINER_PARAM=$CONTAINER_PARAM"
-	log "DOCKER_PARAM=$DOCKER_PARAM"
-	log "NETWORK_DISABLED=$NETWORK_DISABLED"
-	log "PORTS_ALL=$PORTS_ALL"
-	log "PORTS=${PORTS[@]}"
-	log "VOLUMES=${VOLUMES[@]}"
-	log "VOLUMES_FROM=${VOLUMES_FROM[@]}"
-	log "LINKS=${LINKS[@]}"
-	log "AUTO_REMOVE=$AUTO_REMOVE"
-	log "PW_ENABLED=$PW_ENABLED"
-	log "PW_HOSTIF=$PW_HOSTIF"
-	log "PW_CONTAINER_IF=$PW_CONTAINER_IF"
-	log "PW_IP=$PW_IP"
-	log "PW_GATEWAY=$PW_GATEWAY"
-	log "PW_MAC=$PW_MAC"
-	log "CONTAINER_ENV=${CONTAINER_ENV[@]}"
-	log "DOCKER_HOST=$DOCKER_HOST"
-	log "DATA_CONTAINER=$DATA_CONTAINER"
-	log "MD5=$MD5"
+	# Dump the Settings from config file
+	echo "--- CONFIG START: $CONFIG_FILE ---"
+	for v in "${TOWBOAT_CONFIGS[@]}"; do
+		echo "ENV: $v: $(eval echo '$'$v)"
+	done
+	if [ -z "$1" ]; then
+		echo "-- RUNTIME ENV --"
+		for v in "${TOWBOAT_ENV[@]}"; do
+			echo "$v: $(eval echo '$'$v)"
+		done
+	fi
+	echo "--- CONFIG END: $CONFIG_FILE---"
 }
 
 function resetenv()
 {
 	# Settings from config file
-	NAME=
-	ENABLED=
-	CONTAINER_HOSTNAME=
-	IMAGE=
-	CONTAINER_PARAM=
-	DOCKER_PARAM=
-	NETWORK_DISABLED=
-	PORTS_ALL=
-	PORTS=
-	VOLUMES=
-	VOLUMES_FROM=
-	LINKS=
-	AUTO_REMOVE=
-	PW_ENABLED=
-	PW_HOSTIF=
-	PW_CONTAINER_IF=
-	PW_IP=
-	PW_GATEWAY=
-	PW_MAC=
-	CONTAINER_ENV=
-	DOCKER_HOST=
-	DATA_CONTAINER=
-
-	# Internal stuff
-	RUN_ID=
-	MD5=
+	for v in "${TOWBOAT_CONFIGS[@]}" "${TOWBOAT_ENV[@]}"; do
+		eval $v=""
+	done
 }
 
 function loadconfig()
 {
-	local CFILE CNAME IFIPS
-	CFILE=$1
-	CNAME=$(echo "$1" | sed -e "s#.*/\(.*\)\.cfg#\1#")
+	local CONFIG_FILE CNAME IFIPS
 	# Reset the environment
 	resetenv
+	
+	CNAME=$(echo "$1" | sed -e "s#.*/\(.*\)\.cfg#\1#")
+	CONFIG_FILE=$1
 	# Load the config file
-	[ ! -f "$CFILE" ] && {
-		error "Could not start container $CNAME: $CFILE doesn't exist"
+	[ ! -f "$CONFIG_FILE" ] && {
+		error "Could not start container $CNAME: $CONFIG_FILE doesn't exist"
 		return 1
 	}
-	. $CFILE
+	. $CONFIG_FILE
 	# Check the container name
 	if [ "$CNAME" != "$NAME" ]; then
-		error "Container name and file name do not match: $CFILE -> $NAME"
+		error "Container name and file name do not match: $CONFIG_FILE -> $NAME"
 		resetenv
 		return 1
 	fi
@@ -175,30 +173,43 @@ function loadconfig()
 		local TMPA
 		for P in "${PORTS[@]}"; do
 			if [ "$(echo $P|grep "^@.*:")" ]; then
+				# Extract the "@if" interface name in the portmapping
 				local PIF=$(echo $P | sed -e "s#^@\([^:]*\):.*#\1#")
-				local PIP=$(ip addr show $PIF | grep "inet " | awk '{ print $2 }' | sed -e "s#^\(.*\)/.*#\1#")
+				# Get the IP Address from the interface. Only the first-one is picked up
+				local PIP=$(ip addr show $PIF 2>/dev/null | grep "inet " | head -n1 | awk '{ print $2 }' | sed -e "s#^\(.*\)/.*#\1#")
+				[ -z "$PIP" ] && {
+					error "$NAME: Could not determine the IP Address for interface $PIF in port mapping $P - skipping"
+					continue
+				}
 				TMPA=( "$(echo $P|sed -e "s/^@${PIF}:/${PIP}:/")" )
 				IFIPS="${IFIPS} ${PIF}=${TMPA[0]}"
-				#log "Interface detected in port mapping: $P: $PIF: $PIP -> $TMPA"
 			else
-				#log "Static mapping: $P"
 				TMPA=( "$P" )
 			fi
 			TMP_PORTS=( "${TMP_PORTS[@]}" "${TMPA[@]}" )
 		done
 		PORTS=("${TMP_PORTS[@]}")
-		#log "TMP_PORTS: ${TMP_PORTS[@]}"
-		#log "IFIPS: $IFIPS"
-		#log "PORTS: ${PORTS[@]}"
 	fi
 	
 	# Create the DOCKER_HOST commandline parameter
 	[ -n "$DOCKER_HOST" ] && DOCKER_HOST="-H=$DOCKER_HOST"
 	
-	if [ -n "$IFIPS" ]; then
-		MD5=$( (cat ${CFILE} ; echo "$IFIPS") | md5sum | awk '{ print $1 }')
-	else
-		MD5=$( cat ${CFILE} | md5sum | awk '{ print $1 }')
+	## For compatability with old TOWBOAT_CONFIG format, use md5 on config file
+	local ENV_MD5=$(findenv TOWBOAT_CONFIG)
+	if [ -n "$ENV_MD5" ] && [ -z "$(echo $ENV_MD5|grep "^V2_")" ]; then
+		warn "$NAME: Uses old TOWBOAT_CONFIG environment variable!"
+		# We use the old config, use md5 directly on the configuration file
+		if [ -n "$IFIPS" ]; then
+			MD5=$( (cat ${CONFIG_FILE} ; echo "$IFIPS") | md5sum | awk '{ print $1 }')
+		else
+			MD5=$( cat ${CONFIG_FILE} | md5sum | awk '{ print $1 }')
+		fi
+	fi
+	
+	## MD5 not filled in by previous versions
+	if [ -z "$MD5" ]; then
+		# Better changes detection this way, use the evaluated output, fixes changing the config with scripts
+		MD5="V2_$( printenv no_internal | md5sum | awk '{ print $1 }')"
 	fi
 	return 0
 }
@@ -426,7 +437,7 @@ function full_start()
 			_DOPTS="${_DOPTS} --volumes-from $VF"
 		done
 	fi
-	
+
 	RUN_ID=$(eval "$DOCKER $DOCKER_HOST run $DOCKER_PARAM $_DOPTS $IMAGE $CONTAINER_PARAM") || {
 		error "Docker run failed: $DOCKER $DOCKER_HOST run $DOCKER_PARAM $_DOPTS $IMAGE $CONTAINER_PARAM"
 		fatal "$NAME NOT STARTED"
@@ -447,7 +458,7 @@ function restart()
 		# Container does not have to run, just exist - which it does if we get here.
 		if [ "$MD5R" != "$MD5" ]; then
 			warn "$NAME is an existing data-container, and configuration has changed since start, NOT REMOVING."
-			log "    MD5 DIFF: $MD5R != $MD5"
+			#log "    MD5 DIFF: $MD5R != $MD5"
 		else
 			log "$NAME is an existing data-container, no need to start."
 		fi
@@ -495,20 +506,38 @@ function restart()
 
 function containerstatus() {
 	loadconfig $1 || return 1
+	
+	local CONFIG_UPDATED=
+	MD5R=$(findenv TOWBOAT_CONFIG)
+	if [ -n "$MD5R" ]; then
+		if [ "$MD5" != "$MD5R" ]; then
+			CONFIG_UPDATED="- Configuration changed!"
+			log "$NAME: $MD5" != "$MD5R"
+		else
+			CONFIG_UPDATED=
+		fi
+	else
+		CONFIG_UPDATED="- No configuration env stored"
+	fi
+	
 	if [ "$(checkval "$ENABLED" true)" == "false"  ]; then
 		if [ -n "$(find_container)" ]; then
-			warn "$NAME: Disabled, but running"
+			warn "$NAME: Disabled, but running $CONFIG_UPDATED"
+			[ -n "$CONFIG_UPDATED" ] && warn "-> $NAME: When restarting, the container will be killed."
 		else
-			ok "$NAME: Disabled"
+			ok "$NAME: Disabled $CONFIG_UPDATED"
 		fi
 		return 0
 	elif [ -n "$(find_container)" ]; then
-		ok "$NAME: Running"
+		ok "$NAME: Running $CONFIG_UPDATED"
+		[ -n "$CONFIG_UPDATED" ] && warn "-> $NAME: start or restart container to apply new settings"
 	elif [ -n "$(find_container -a)" ]; then
 		if [ "$(checkval "$DATA_CONTAINER" false)" == "true" ]; then
-			ok "$NAME: Data container exists"
+			ok "$NAME: Data container exists $CONFIG_UPDATED"
+			[ -n "$CONFIG_UPDATED" ] && warn "-> $NAME: towboat will not recreate container to avoid data loss!"
 		else
-			error "$NAME: Container exists but not running"
+			error "$NAME: Container exists but not running $CONFIG_UPDATED"
+			[ -n "$CONFIG_UPDATED" ] && warn "-> $NAME: Start to apply the new settings"
 			return 1
 		fi
 	else
@@ -544,13 +573,24 @@ function startcontainer() {
 	#log "Starting container from file: $1"
 	loadconfig $1 || return 1
 	if [ "$(checkval "$ENABLED" true)" == "false"  ]; then
-		warn "$NAME: disabled"
+		if [ -n "$(find_container)" ]; then
+			warn "$NAME: Disabled container running -> Stopping"
+			$DOCKER $DOCKER_HOST kill $NAME >/dev/null || {
+				fatal "$NAME: Could not kill disabled container"
+				resetenv
+				CONTAINERS_FAILED=="${CONTAINERS_FAILED}|$1|"
+				return 1
+			}
+		else
+			warn "$NAME: disabled"
+		fi
 		return 0
 	fi
 	
 	if [ -n "$(find_container)" ]; then
 		# Already running, check if config matches environment
 		if [ "$MD5" != "$(findenv TOWBOAT_CONFIG)" ]; then
+			log "MD5 MISMATCH: $MD5!= $(findenv TOWBOAT_CONFIG)"
 			if [ "$(checkval "$AUTO_REMOVE" false)" == "true" ]; then
 				log "$NAME: config change detected, AUTO_REMOVE enabled, killing old instance."
 				$DOCKER $DOCKER_HOST kill $NAME >/dev/null || {
@@ -560,9 +600,11 @@ function startcontainer() {
 					return 1
 				}
 				restart || {
+					resetenv
 					CONTAINERS_FAILED=="${CONTAINERS_FAILED}|$1|"
 					return 1
 				}
+				#log "$NAME: Restart OK"
 			else
 				warn "$NAME running, but config changed, AUTO_REMOVE disabled!"
 				ok "$NAME running"
