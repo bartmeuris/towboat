@@ -1,5 +1,13 @@
 # Towboat
 
+## WARNING
+
+*Not recommended to use in production.* Currently, things change rather quickly and are not always backwards compatible. The AUTO_REMOVE feature combined with a change in the way configuration changes are detected now (it has changed) can have unexpected consequences.
+
+You have been warned.
+
+## What is it?
+
 Manages [Docker](http://www.docker.io) with configuration files.
 
 A bash script that starts/manages Docker containers based on a set of config files matching `*.cfg` in, by default  `/etc/towboat`.
@@ -46,7 +54,7 @@ An attempt is made to locate the `pipework` and `docker` executables in the path
 TODO. See `container.cfg.sample` - all options should be described.
 
 Notes:
-- Since configuration files are just bash scripts setting environment variables, you can add some intelligence. This however can lead to unexpected results. For the AUTO_REMOVE feature, which removes and restarts a container when a configuration file has changed, `towboat` currently checks the MD5 sum of the config file (and IP changes). If you dynamically set configuration options using external data sources, changes will not be detected.
+- ~~Since configuration files are just bash scripts setting environment variables, you can add some intelligence. This however can lead to unexpected results. For the AUTO_REMOVE feature, which removes and restarts a container when a configuration file has changed, `towboat` currently checks the MD5 sum of the config file (and IP changes). If you dynamically set configuration options using external data sources, changes will not be detected.~~ *not true anymore, the new way of detecting changes calculates an MD5 on all resulting environment variables, not on the configuration file itself*
 
 
 ## Examples
