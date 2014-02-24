@@ -511,10 +511,10 @@ function containerstatus() {
 	MD5R=$(findenv TOWBOAT_CONFIG)
 	if [ -n "$MD5R" ]; then
 		if [ "$MD5" != "$MD5R" ]; then
-			CONFIG_UPDATED="- Configuration changed!"
+			CONFIG_UPDATED=" - !! Configuration changed"
 			log "$NAME: $MD5" != "$MD5R"
 		else
-			CONFIG_UPDATED=
+			CONFIG_UPDATED=""
 		fi
 	else
 		CONFIG_UPDATED="- No configuration env stored"
