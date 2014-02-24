@@ -27,15 +27,55 @@ A bash script that starts/manages Docker containers based on a set of config fil
 
 ## Running towboat
 
+### Starting containers
 Executing towboat is as simple as running:
 ```
 towboat start
 ```
+This starts all containers for which it finds a valid `*.cfg` file in the `TOWBOAT_CONFIGPATH` directory.
 
 If you want to test only a specific docker image (check if it can resolve it's dependencies for example), you do that like this:
 ```
 towboat start container-to-test
 ```
+### Stopping containers
+
+```
+towboat stop
+```
+Stops all containers which are configured.
+
+
+Or to stop only container `container-to-stop`:
+```
+towboat stop container-to-stop
+```
+Stops a specific container.
+** dependencies are NOT checked when stopping containers! **
+
+### Restarting
+
+As expected, it works like this:
+```
+towboat restart
+```
+or to only restart `container-to-restart`:
+```
+towboat restart container-to-restart
+```
+
+### Requesting the status
+
+```
+towboat status
+```
+Gives you a status overview of all containers.
+
+```
+towboat status container-to-check
+```
+Gives you the status of only the container with the name `container-to-check`
+
 
 ## Overriding file/path locations
 
