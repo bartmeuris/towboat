@@ -104,7 +104,7 @@ There are a few specific things that are always applied to containers started by
 
 | Name | Type | Default Value/Required | Description | Example |
 |------|------|------------------------|-------------|---------|
-| `NAME` | String | *Required* | The name to give the container. Has to match the filename (`<NAME>.cfg`). |  ```NAME=mycontainer``` |
+| `NAME` | String | *Required* | The name to give the container. Has to match the filename (`<NAME>.cfg`). |  `NAME=mycontainer` |
 | `ENABLED` | Bool (true/false) | `true` | Flag to indicate if this container is enabled | `ENABLED=false` |
 | `IMAGE` | String | *Required* | The name of the image this container uses | `IMAGE=ubuntu:12.04` |
 | `AUTO_REMOVE` | Bool (true/false) | `false` | Flag to indicate if this container can be killed, removed and re-created when a configuration change is detected. | `AUTO_REMOVE=true` |
