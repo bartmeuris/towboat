@@ -93,28 +93,28 @@ function getconfigfiles()
 }
 
 TOWBOAT_CONFIGS=(
-	"NAME"
 	"ENABLED"
-	"CONTAINER_HOSTNAME"
+	"NAME"
 	"IMAGE"
-	"CONTAINER_PARAM"
+	"AUTO_REMOVE"
+	"DATA_CONTAINER"
+	"DOCKER_HOST"
 	"DOCKER_PARAM"
+	"CONTAINER_HOSTNAME"
+	"CONTAINER_PARAM"
+	"CONTAINER_ENV"
 	"NETWORK_DISABLED"
 	"PORTS_ALL"
 	"PORTS"
 	"VOLUMES"
 	"VOLUMES_FROM"
 	"LINKS"
-	"AUTO_REMOVE"
 	"PW_ENABLED"
 	"PW_HOSTIF"
 	"PW_CONTAINER_IF"
 	"PW_IP"
 	"PW_GATEWAY"
 	"PW_MAC"
-	"CONTAINER_ENV"
-	"DOCKER_HOST"
-	"DATA_CONTAINER"
 )
 
 TOWBOAT_ENV=(
@@ -123,18 +123,45 @@ TOWBOAT_ENV=(
 	"MD5"
 )
 
+function printenv_arr()
+{
+	readarray -t SORT_ARR < <( for a in $*; do echo "$a"; done | sort )
+	for v in "${SORT_ARR[@]}"; do
+		if declare -p $v 2>/dev/null | grep -q 'declare \-a'; then
+			# It's an array, loop
+			while read av; do
+				echo "ENV: $v[]: $av"
+			done  < <(for b in $(eval echo '${'$v'[@]}'); do echo "$b"; done| sort)
+		else
+			# Normal variable, skip if empty
+			local VAL="$(eval echo '$'$v)"
+			[ -n "$VAL" ] && echo "ENV: $v: $VAL"
+		fi
+	done
+}
+
 function printenv()
 {
 	# Dump the Settings from config file
 	echo "--- CONFIG START: $CONFIG_FILE ---"
-	for v in "${TOWBOAT_CONFIGS[@]}"; do
-		echo "ENV: $v: $(eval echo '$'$v)"
-	done
+	# Sort the keys, important for config change detection
+	# while read v; do
+		# if declare -p $v 2>/dev/null | grep -q 'declare \-a'; then
+			## It's an array, loop
+			# while read av; do
+				# echo "ENV: $v[]: $av"
+			# done  < <(for b in $(eval echo '${'$v'[@]}'); do echo "$b"; done| sort)
+		# else
+			## Normal variable, skip if empty
+			# local VAL="$(eval echo '$'$v)"
+			# [ -n "$VAL" ] && echo "ENV: $v: $VAL"
+		# fi
+	# done < <(for b in "${TOWBOAT_CONFIGS[@]}"; do echo "$b"; done| sort)
+	printenv_arr "${TOWBOAT_CONFIGS[@]}"
+	
 	if [ -z "$1" ]; then
 		echo "-- RUNTIME ENV --"
-		for v in "${TOWBOAT_ENV[@]}"; do
-			echo "$v: $(eval echo '$'$v)"
-		done
+		printenv_arr "${TOWBOAT_ENV[@]}"
 	fi
 	echo "--- CONFIG END: $CONFIG_FILE---"
 }
@@ -211,6 +238,7 @@ function loadconfig()
 		# Better changes detection this way, use the evaluated output, fixes changing the config with scripts
 		MD5="V2_$( printenv no_internal | md5sum | awk '{ print $1 }')"
 	fi
+	#printenv
 	return 0
 }
 
@@ -458,7 +486,6 @@ function restart()
 		# Container does not have to run, just exist - which it does if we get here.
 		if [ "$MD5R" != "$MD5" ]; then
 			warn "$NAME is an existing data-container, and configuration has changed since start, NOT REMOVING."
-			#log "    MD5 DIFF: $MD5R != $MD5"
 		else
 			log "$NAME is an existing data-container, no need to start."
 		fi
@@ -512,14 +539,13 @@ function containerstatus() {
 	if [ -n "$MD5R" ]; then
 		if [ "$MD5" != "$MD5R" ]; then
 			CONFIG_UPDATED=" - !! Configuration changed"
-			log "$NAME: $MD5" != "$MD5R"
 		else
 			CONFIG_UPDATED=""
 		fi
 	else
 		CONFIG_UPDATED="- No configuration env stored"
 	fi
-	
+
 	if [ "$(checkval "$ENABLED" true)" == "false"  ]; then
 		if [ -n "$(find_container)" ]; then
 			warn "$NAME: Disabled, but running $CONFIG_UPDATED"
