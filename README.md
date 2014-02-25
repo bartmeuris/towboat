@@ -25,7 +25,7 @@ A bash script that starts/manages Docker containers based on a set of config fil
   - Rudimentary circular dependency checking (not perfect/super well tested, but works for simple situations)
 - Detect configuration changes compared to the previous `towboat` run, and remove and restart the container with the new configuration if AUTO_REMOVE is enabled.
 - Rudimentary [pipework](https://github.com/jpetazzo/pipework/) support
-- Use ipv4 addresses from specific interfaces in port mappings. IP changes are detected as a configuration change. Use the "@<interfacename>" in the PORTS setting instead of the host IP address.
+- Use ipv4 addresses from specific interfaces in port mappings. IP changes are detected as a configuration change. Use the `"@<interfacename>"` in the PORTS setting instead of the host IP address.
 
 ## Running towboat
 
@@ -99,15 +99,14 @@ There are a few specific things that are always applied to containers started by
 - The hostname, if not specified with the `CONTAINER_HOSTNAME` configuration setting, will be set to the `NAME` setting.
 - An environment variable named `TOWBOAT_CONFIG` with an version + MD5 of the Towboat configuration will be set. This is used to detect configuration changes.
 - An environment varuable named `ETHDEVS` will be set with the ethernet devices that should be available. By default this is only `'eth0'`,  but when [pipework](https://github.com/jpetazzo/pipework/) is used, this can become `'eth0 eth1'`, or if networking is disabled, this can be empty.
-- 
 
 ## Config file format.
 
 | Name | Type | Default Value/Required | Description | Example |
-|------|------|-------------|---------|
-| `NAME` | String | **REQUIRED** | The name to give the container. Has to match the filename (`<NAME>.cfg`). | `NAME=mycontainer` |
-| `ENABLED" | Bool (true/false) | `true` | Flag to indicate if this container is enabled | `ENABLED=false` |
-| `IMAGE` | String | **REQUIRED** | The name of the image this container uses | `IMAGE=ubuntu:12.04` |
+|------|------|------------------------|-------------|---------|
+| `NAME` | String | *Required* | The name to give the container. Has to match the filename (`<NAME>.cfg`). |  ```NAME=mycontainer``` |
+| `ENABLED` | Bool (true/false) | `true` | Flag to indicate if this container is enabled | `ENABLED=false` |
+| `IMAGE` | String | *Required* | The name of the image this container uses | `IMAGE=ubuntu:12.04` |
 | `AUTO_REMOVE` | Bool (true/false) | `false` | Flag to indicate if this container can be killed, removed and re-created when a configuration change is detected. | `AUTO_REMOVE=true` |
 | `DATA_CONTAINER` | Bool (true/false) | `false` | Flag to indicate if this container is a data container. This means this container will never be removed automatically, and that this container only has to exist, and not be running to meet dependency requirements. | `DATA_CONTAINER=true` |
 | `DOCKER_HOST` | String | *Empty* | Run this container on a specific Docker host. Sets the --host parameter when running a `docker` command. | `DOCKER_HOST="tcp://my.docker:1234"` |
@@ -124,7 +123,7 @@ There are a few specific things that are always applied to containers started by
 
 For more information, see the `container.cfg.sample` file.
 
-### Notes:
+### Configuration file notes:
 ~~Since configuration files are just bash scripts setting environment variables, you can add some intelligence. This however can lead to unexpected results. For the AUTO_REMOVE feature, which removes and restarts a container when a configuration file has changed, `towboat` currently checks the MD5 sum of the config file (and IP changes). If you dynamically set configuration options using external data sources, changes will not be detected.~~
 
 Not true anymore, the new way of detecting changes calculates an MD5 on all resulting environment variables, not on the configuration file itself, so you can add some logic into the configuration files with bash-scripting to influence the configuration.
