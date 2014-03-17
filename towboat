@@ -26,6 +26,16 @@ PIPEWORK=${PIPEWORK:-"/usr/bin/pipework"}
 DOCKER=${DOCKER:-$(which docker 2>/dev/null)}
 DOCKER=${DOCKER:-"/usr/bin/docker"}
 LOGLEVEL=${LOGLEVEL:-4}
+DOCKERVERSION="$(docker -v | sed -e "s/.* version \(.*\),.*/\1/")"
+
+DOCKER_NAMEOPT="--name"
+DOCKER_LINKOPT="--link"
+
+if [ "$(printf "0.9.0\n${DOCKERVERSION}\n" | sort | tail -n1)" != "$DOCKERVERSION" ]; then
+	# Pre 0.9.0 the parameters used a single dash
+	DOCKER_NAMEOPT="-name"
+	DOCKER_LINKOPT="-link"
+fi
 
 function _log() {
 	if [ -z "$1" ]; then
@@ -410,7 +420,7 @@ function full_start()
 		resetenv
 		return 1
 	}
-	_DOPTS="-d -name "$NAME" --hostname ${CONTAINER_HOSTNAME:-$NAME} -e TOWBOAT_CONFIG=$MD5"
+	_DOPTS="-d $DOCKER_NAMEOPT "$NAME" --hostname ${CONTAINER_HOSTNAME:-$NAME} -e TOWBOAT_CONFIG=$MD5"
 	
 	## Add networking environment
 	if [ "$(checkval "$PW_ENABLED" false)" != "false" ]; then
@@ -439,7 +449,7 @@ function full_start()
 	if [ -n "$LINKS" ]; then
 		local L
 		for L in "${LINKS[@]}"; do
-			_DOPTS="$_DOPTS -link $L"
+			_DOPTS="$_DOPTS $DOCKER_LINKOPT $L"
 		done
 	fi
 	
