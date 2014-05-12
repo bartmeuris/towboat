@@ -470,6 +470,16 @@ function full_start()
 			_DOPTS="${_DOPTS} -v $V"
 		done
 	fi
+	
+	## Automatically mount local timezone and localtime files to the containers so they have the correct date/time 
+	if [ "$(checkval "$AUTO_TIMEZONE" true)" == "true" ]; then
+		if [ -f "/etc/localtime" ]; then
+			_DOPTS="${_DOPTS} -v /etc/localtime:/etc/localtime:ro"
+		fi
+		if [ -f "/etc/timezone" ]; then
+			_DOPTS="${_DOPTS} -v /etc/timezone:/etc/timezone:ro"
+		fi
+	fi
 	if [ -n "$VOLUMES_FROM" ]; then
 		for VF in "${VOLUMES_FROM[@]}"; do
 			_DOPTS="${_DOPTS} --volumes-from $VF"
